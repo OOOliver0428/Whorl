@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+
+  /* Light theme colors */
+  --color-bg: #f8f9fc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f3f9;
+  --color-border: #e2e5ef;
+  --color-border-subtle: #eef0f6;
+  --color-text: #1a1d2e;
+  --color-text-secondary: #6b7194;
+  --color-text-muted: #9ca3c4;
+  --color-primary: #4f6df5;
+  --color-primary-hover: #3d5ae0;
+  --color-primary-subtle: #eef1ff;
+  --color-accent: #7c3aed;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-priority-0: #94a3b8;
+  --color-priority-1: #3b82f6;
+  --color-priority-2: #f59e0b;
+  --color-priority-3: #ef4444;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+/* Dark theme */
+.dark {
+  --color-bg: #0f1117;
+  --color-surface: #1a1d2e;
+  --color-surface-hover: #242842;
+  --color-border: #2a2e45;
+  --color-border-subtle: #22253a;
+  --color-text: #e8eaf0;
+  --color-text-secondary: #8b90ab;
+  --color-text-muted: #5d6180;
+  --color-primary: #6d8bff;
+  --color-primary-hover: #8ba3ff;
+  --color-primary-subtle: #1e2340;
+  --color-accent: #a78bfa;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-priority-0: #5d6180;
+  --color-priority-1: #6d8bff;
+  --color-priority-2: #fbbf24;
+  --color-priority-3: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Custom checkbox */
+.checkbox-done {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  position: relative;
+}
+.checkbox-done:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+.checkbox-done:checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.checkbox-done:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Animated gradient border */
+.glow-border {
+  position: relative;
+}
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+.glow-border:hover::before {
+  opacity: 1;
+}
+
+/* Noise texture overlay */
+.noise-bg::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+.dark .noise-bg::after {
+  opacity: 0.03;
+}
+
+/* Focus ring */
+input:focus, textarea:focus, select:focus, button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* Selection */
+::selection {
+  background: var(--color-primary);
+  color: white;
+}
