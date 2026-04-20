@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '../../store'
 import { X, Calendar, ChevronDown, Tag, Clock, Sparkles, Repeat } from 'lucide-react'
+import { TaskDocumentPanel } from '../documents'
 import type { Task } from '../../store'
 
 interface Props {
@@ -98,7 +99,7 @@ export default function TaskForm({ task, onClose }: Props) {
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="mx-4 w-full max-w-lg rounded-2xl border border-border bg-surface shadow-2xl"
+          className="mx-4 flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-surface shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -110,7 +111,7 @@ export default function TaskForm({ task, onClose }: Props) {
           </div>
 
           {/* Body */}
-          <div className="space-y-4 px-6 py-5">
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
             {/* Title */}
             <input
               type="text"
@@ -277,6 +278,11 @@ export default function TaskForm({ task, onClose }: Props) {
                         })}
                       </select>
                     </div>
+                  )}
+
+                  {/* Task document associations (only for existing tasks) */}
+                  {isEdit && (
+                    <TaskDocumentPanel taskId={task!.id} projectId={projectId} />
                   )}
                 </motion.div>
               )}

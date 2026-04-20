@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useAppStore, type Task } from '../../store'
 import { format, parseISO, differenceInDays, addDays, eachWeekOfInterval, isToday, isPast } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
@@ -16,12 +16,15 @@ const PRIORITY_COLORS = ['#94a3b8', '#3b82f6', '#f59e0b', '#ef4444']
 
 export default function TaskTimeline() {
   const { tasks, timelineShowNoDate, setTimelineShowNoDate, toggleTask } = useAppStore()
+  const [hideDone, setHideDone] = useState(false)
 
-  // Filter: only tasks with due_date, unless toggle is on
+  // Filter: only tasks with due_date, unless toggle is on; optionally hide done
   const timelineTasks = useMemo(() => {
-    if (timelineShowNoDate) return tasks
-    return tasks.filter((t) => t.due_date)
-  }, [tasks, timelineShowNoDate])
+    let filtered = tasks
+    if (!timelineShowNoDate) filtered = filtered.filter((t) => t.due_date)
+    if (hideDone) filtered = filtered.filter((t) => t.status !== 'done')
+    return filtered
+  }, [tasks, timelineShowNoDate, hideDone])
 
   // Calculate date range for the axis
   const { axisStart, axisEnd, totalDays } = useMemo(() => {
@@ -109,7 +112,7 @@ export default function TaskTimeline() {
   return (
     <div className="space-y-4">
       {/* Toggle */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-4">
         <label className="flex cursor-pointer items-center gap-2 text-sm text-text-secondary">
           <input
             type="checkbox"
@@ -118,6 +121,15 @@ export default function TaskTimeline() {
             className="checkbox-done !h-4 !w-4 !rounded-sm"
           />
           显示无截止日期的任务
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-text-secondary">
+          <input
+            type="checkbox"
+            checked={hideDone}
+            onChange={(e) => setHideDone(e.target.checked)}
+            className="checkbox-done !h-4 !w-4 !rounded-sm"
+          />
+          隐藏已完成
         </label>
       </div>
 

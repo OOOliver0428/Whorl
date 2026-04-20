@@ -9,6 +9,7 @@ import tagsRouter from './routes/tags.js'
 import pomodoroRouter from './routes/pomodoro.js'
 import statsRouter from './routes/stats.js'
 import exportRouter from './routes/export.js'
+import documentsRouter from './routes/documents.js'
 
 config()
 
@@ -25,11 +26,7 @@ app.use('/api/tags', tagsRouter)
 app.use('/api/pomodoro', pomodoroRouter)
 app.use('/api/stats', statsRouter)
 app.use('/api/export', exportRouter)
-
-// v1.1.0 placeholder routes
-app.use('/api/documents', (_req, res) => {
-  res.status(501).json({ error: '文档池功能将在 v1.1.0 中可用' })
-})
+app.use('/api/documents', documentsRouter)
 
 // Serve static frontend in production
 const distPath = join(__dirname, '..', 'dist')

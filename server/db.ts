@@ -15,7 +15,7 @@ db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 
 // Migration system
-const CURRENT_VERSION = 2
+const CURRENT_VERSION = 3
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS _meta (
@@ -104,7 +104,7 @@ function runMigrations() {
       CREATE INDEX idx_pomodoro_task ON pomodoro_sessions(task_id);
 
       -- Default project
-      INSERT INTO projects (name, color, icon) VALUES ('收件箱', '#6366f1', '📥');
+      INSERT INTO projects (name, color, icon) VALUES ('公共', '#6366f1', '📥');
     `)
     setDbVersion(1)
   }
@@ -121,8 +121,43 @@ function runMigrations() {
     setDbVersion(2)
   }
 
-  // v1.1.0 placeholder: document pool tables
-  // Will be added in migration v2
+  // v3: Document pool tables
+  if (current < 3) {
+    db.exec(`
+      CREATE TABLE documents (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id    INTEGER NOT NULL,
+        name          TEXT NOT NULL,
+        file_path     TEXT NOT NULL,
+        file_type     TEXT,
+        file_size     INTEGER,
+        last_modified TEXT,
+        file_hash     TEXT,
+        description   TEXT DEFAULT '',
+        status        TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','missing','changed')),
+        created_at    TEXT DEFAULT (datetime('now')),
+        updated_at    TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE task_documents (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id       INTEGER NOT NULL,
+        document_id   INTEGER NOT NULL,
+        relation      TEXT NOT NULL DEFAULT 'reference' CHECK(relation IN ('reference','output')),
+        created_at    TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+        FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+        UNIQUE(task_id, document_id)
+      );
+
+      CREATE INDEX idx_documents_project ON documents(project_id);
+      CREATE INDEX idx_documents_status ON documents(status);
+      CREATE INDEX idx_task_documents_task ON task_documents(task_id);
+      CREATE INDEX idx_task_documents_doc ON task_documents(document_id);
+    `)
+    setDbVersion(3)
+  }
 }
 
 runMigrations()

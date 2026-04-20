@@ -37,6 +37,13 @@ export interface PriorityStat {
   done: number
 }
 
+export interface TagStat {
+  id: number
+  name: string
+  color: string
+  count: number
+}
+
 export interface HeatmapItem {
   date: string
   count: number
@@ -101,6 +108,50 @@ export interface CreateSessionData {
   type?: 'work' | 'break'
 }
 
+export interface Document {
+  id: number
+  project_id: number
+  name: string
+  file_path: string
+  file_type: string | null
+  file_size: number | null
+  last_modified: string | null
+  file_hash: string | null
+  description: string
+  status: 'active' | 'missing' | 'changed'
+  created_at: string
+  updated_at: string
+}
+
+export interface ScannedFile {
+  name: string
+  file_path: string
+  file_type: string
+  file_size: number
+  last_modified: string
+}
+
+export interface DocumentChange {
+  id: number
+  name: string
+  old_hash: string | null
+  new_hash: string | null
+  status: string
+}
+
+export interface TaskDocumentLink {
+  link_id: number
+  relation: 'reference' | 'output'
+  linked_at: string
+  id: number
+  name: string
+  file_path: string
+  file_type: string | null
+  file_size: number | null
+  status: string
+  description: string
+}
+
 const BASE = '/api'
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -154,8 +205,45 @@ export const api = {
   getProjectStats: () => request<ProjectStat[]>('/stats/projects'),
   getPriorityStats: () => request<PriorityStat[]>('/stats/priority'),
   getHeatmap: (year?: number) => request<HeatmapItem[]>(`/stats/heatmap${year ? `?year=${year}` : ''}`),
+  getTagStats: (range?: string) => request<TagStat[]>(`/stats/tags${range ? `?range=${range}` : ''}`),
   getWeeklyStats: (params?: Record<string, string>) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : ''
     return request<{ week: string; count: number }[]>(`/stats/weekly${qs}`)
   },
+
+  // Documents
+  getDocuments: (params?: Record<string, string>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<Document[]>(`/documents${qs}`)
+  },
+  createDocument: (data: { project_id: number; name: string; file_path: string; file_type?: string; file_size?: number; last_modified?: string; file_hash?: string; description?: string }) =>
+    request<Document>('/documents', { method: 'POST', body: JSON.stringify(data) }),
+  updateDocument: (id: number, data: { name?: string; description?: string; status?: string }) =>
+    request<Document>(`/documents/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteDocument: (id: number) =>
+    request<{ success: boolean }>(`/documents/${id}`, { method: 'DELETE' }),
+  scanDirectory: (dirPath: string, extensions?: string[]) =>
+    request<{ files: ScannedFile[]; total: number; truncated: boolean }>('/documents/scan', {
+      method: 'POST', body: JSON.stringify({ dir_path: dirPath, extensions }),
+    }),
+  importDocuments: (projectId: number, files: ScannedFile[]) =>
+    request<{ imported: Document[]; skipped: string[]; imported_count: number; skipped_count: number }>('/documents/import', {
+      method: 'POST', body: JSON.stringify({ project_id: projectId, files }),
+    }),
+  checkDocumentChanges: (documentIds: number[]) =>
+    request<{ changes: DocumentChange[] }>('/documents/check-changes', {
+      method: 'POST', body: JSON.stringify({ document_ids: documentIds }),
+    }),
+  refreshDocument: (id: number) =>
+    request<Document>(`/documents/${id}/refresh`, { method: 'POST' }),
+
+  // Task Documents
+  getTaskDocuments: (taskId: number) =>
+    request<{ references: TaskDocumentLink[]; outputs: TaskDocumentLink[] }>(`/tasks/${taskId}/documents`),
+  linkTaskDocument: (taskId: number, documentId: number, relation: 'reference' | 'output') =>
+    request<{ id: number; task_id: number; document_id: number; relation: string }>(`/tasks/${taskId}/documents`, {
+      method: 'POST', body: JSON.stringify({ document_id: documentId, relation }),
+    }),
+  unlinkTaskDocument: (taskId: number, docId: number) =>
+    request<{ success: boolean }>(`/tasks/${taskId}/documents/${docId}`, { method: 'DELETE' }),
 }

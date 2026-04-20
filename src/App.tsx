@@ -7,6 +7,7 @@ import TaskList from './components/tasks/TaskList'
 import TaskTimeline from './components/tasks/TaskTimeline'
 import TaskForm from './components/tasks/TaskForm'
 import PomodoroTimer from './components/pomodoro/PomodoroTimer'
+import { DocumentPool, ProjectTabs } from './components/documents'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useState } from 'react'
 
@@ -24,6 +25,14 @@ export default function App() {
   const { currentView, currentProjectId, viewMode, fetchProjects, fetchTags, fetchTasks } = useAppStore()
   useThemeStore()
   const [showForm, setShowForm] = useState(false)
+  const [projectTab, setProjectTab] = useState<'tasks' | 'documents'>('tasks')
+
+  // Reset project tab when switching away from project view
+  useEffect(() => {
+    if (currentView !== 'project') {
+      setProjectTab('tasks')
+    }
+  }, [currentView])
 
   useEffect(() => {
     fetchProjects()
@@ -47,6 +56,20 @@ export default function App() {
               </Suspense>
             ) : currentView === 'pomodoro' ? (
               <PomodoroTimer />
+            ) : currentView === 'project' ? (
+              <div className="space-y-4">
+                <ProjectTabs
+                  activeTab={projectTab}
+                  onTabChange={setProjectTab}
+                />
+                {projectTab === 'documents' ? (
+                  <DocumentPool />
+                ) : viewMode === 'timeline' ? (
+                  <TaskTimeline />
+                ) : (
+                  <TaskList />
+                )}
+              </div>
             ) : viewMode === 'timeline' ? (
               <TaskTimeline />
             ) : (

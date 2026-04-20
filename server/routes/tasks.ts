@@ -60,6 +60,11 @@ function validate<T extends z.ZodTypeAny>(schema: T) {
   }
 }
 
+const linkDocSchema = z.object({
+  document_id: z.number().int().positive(),
+  relation: z.enum(['reference', 'output']).default('reference'),
+})
+
 // List tasks with filters
 router.get('/', (req, res) => {
   const { status, project_id, parent_id, search, priority, due_from, due_to, tag_id, tag_ids } = req.query
@@ -114,6 +119,63 @@ router.get('/', (req, res) => {
 
   res.json(tasks)
 })
+
+// --- Task document associations (must be before /:id) ---
+
+// GET /api/tasks/:id/documents
+router.get('/:taskId/documents', (req, res) => {
+  const taskId = req.params.taskId
+
+  const rows = db.prepare(`
+    SELECT td.id as link_id, td.relation, td.created_at as linked_at,
+      d.id, d.name, d.file_path, d.file_type, d.file_size, d.status, d.description
+    FROM task_documents td
+    JOIN documents d ON td.document_id = d.id
+    WHERE td.task_id = ?
+    ORDER BY td.created_at DESC
+  `).all(taskId) as any[]
+
+  const references = rows.filter(r => r.relation === 'reference')
+  const outputs = rows.filter(r => r.relation === 'output')
+
+  res.json({ references, outputs })
+})
+
+// POST /api/tasks/:id/documents
+router.post('/:taskId/documents', validate(linkDocSchema), (req, res) => {
+  const taskId = req.params.taskId
+  const { document_id, relation } = req.body
+
+  const task = db.prepare('SELECT id FROM tasks WHERE id = ?').get(taskId)
+  if (!task) return res.status(404).json({ error: 'Task not found' })
+
+  const doc = db.prepare('SELECT id FROM documents WHERE id = ?').get(document_id)
+  if (!doc) return res.status(404).json({ error: 'Document not found' })
+
+  try {
+    const result = db.prepare(
+      'INSERT INTO task_documents (task_id, document_id, relation) VALUES (?, ?, ?)'
+    ).run(taskId, document_id, relation)
+
+    const link = db.prepare('SELECT * FROM task_documents WHERE id = ?').get(result.lastInsertRowid)
+    res.status(201).json(link)
+  } catch (err: any) {
+    if (err.message.includes('UNIQUE constraint')) {
+      return res.status(409).json({ error: '该文档已关联到此任务' })
+    }
+    throw err
+  }
+})
+
+// DELETE /api/tasks/:taskId/documents/:docId
+router.delete('/:taskId/documents/:docId', (req, res) => {
+  const { taskId, docId } = req.params
+
+  db.prepare('DELETE FROM task_documents WHERE task_id = ? AND document_id = ?').run(taskId, docId)
+  res.json({ success: true })
+})
+
+// --- Task CRUD ---
 
 // Get single task with subtasks
 router.get('/:id', (req, res) => {

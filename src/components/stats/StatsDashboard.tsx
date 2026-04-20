@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { api } from '../../api'
 import { CheckCircle2, ListTodo, CalendarCheck, Timer, TrendingUp } from 'lucide-react'
+import TagCloud from './TagCloud'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, Legend,
+  BarChart, Bar, Legend,
 } from 'recharts'
 
 interface Overview {
@@ -16,7 +17,6 @@ interface Overview {
 }
 
 interface TrendItem { date: string; count: number }
-interface ProjectStat { id: number; name: string; color: string; icon: string; total: number; done: number }
 interface PriorityStat { priority: number; total: number; done: number }
 interface HeatmapItem { date: string; count: number }
 
@@ -25,14 +25,12 @@ const priorityLabels = ['低', '中', '高', '紧急']
 export default function StatsDashboard() {
   const [overview, setOverview] = useState<Overview | null>(null)
   const [trend, setTrend] = useState<TrendItem[]>([])
-  const [projectStats, setProjectStats] = useState<ProjectStat[]>([])
   const [priorityStats, setPriorityStats] = useState<PriorityStat[]>([])
   const [heatmap, setHeatmap] = useState<HeatmapItem[]>([])
   const [trendRange, setTrendRange] = useState(30)
 
   useEffect(() => {
     api.getOverview().then(setOverview)
-    api.getProjectStats().then(setProjectStats)
     api.getPriorityStats().then(setPriorityStats)
     api.getHeatmap(new Date().getFullYear()).then(setHeatmap)
   }, [])
@@ -176,69 +174,8 @@ export default function StatsDashboard() {
           </div>
         </motion.div>
 
-        {/* Project distribution */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="rounded-2xl border border-border bg-surface p-5"
-        >
-          <h3 className="mb-4 flex items-center gap-2 font-display text-base font-semibold">
-            项目分布
-          </h3>
-          {projectStats.length > 0 ? (
-            <div className="flex items-center gap-6">
-              <div className="h-52 w-52">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={projectStats}
-                      dataKey="total"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={85}
-                      paddingAngle={3}
-                      cornerRadius={6}
-                    >
-                      {projectStats.map((p) => (
-                        <Cell key={p.id} fill={p.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'var(--color-surface)',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: '10px',
-                        fontSize: '12px',
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex-1 space-y-2">
-                {projectStats.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
-                    <span className="flex-1 text-sm text-text">{p.icon} {p.name}</span>
-                    <span className="text-xs text-text-muted">
-                      {p.done}/{p.total}
-                    </span>
-                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-border">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${p.total > 0 ? (p.done / p.total) * 100 : 0}%`, backgroundColor: p.color }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex h-40 items-center justify-center text-sm text-text-muted">暂无项目数据</div>
-          )}
-        </motion.div>
+        {/* Tag cloud */}
+        <TagCloud />
       </div>
 
       {/* Bottom row */}

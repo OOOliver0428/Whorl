@@ -125,4 +125,23 @@ router.get('/weekly', (req, res) => {
   res.json(db.prepare(sql).all(...params))
 })
 
+// Tag stats for word cloud
+router.get('/tags', (req, res) => {
+  const range = (req.query.range as string) || 'month'
+  const daysMap: Record<string, number> = { week: 7, month: 30, quarter: 90, year: 365 }
+  const days = daysMap[range] || 30
+
+  const rows = db.prepare(`
+    SELECT tg.id, tg.name, tg.color, COUNT(*) as count
+    FROM task_tags tt
+    JOIN tasks t ON tt.task_id = t.id
+    JOIN tags tg ON tt.tag_id = tg.id
+    WHERE t.completed_at >= date('now', '-' || ? || ' days')
+    GROUP BY tg.id
+    ORDER BY count DESC
+  `).all(days)
+
+  res.json(rows)
+})
+
 export default router
