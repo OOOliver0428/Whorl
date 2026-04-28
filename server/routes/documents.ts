@@ -322,7 +322,7 @@ router.post('/check-changes', validate(checkChangesSchema), (req, res) => {
 })
 
 // POST /api/documents/:id/refresh — refresh single document hash
-router.post('/:id/refresh', (req, res) => {
+router.post('/:id/refresh', async (req, res) => {
   const doc = db.prepare('SELECT * FROM documents WHERE id = ?').get(req.params.id) as any
   if (!doc) return res.status(404).json({ error: 'Document not found' })
 
@@ -333,7 +333,7 @@ router.post('/:id/refresh', (req, res) => {
 
   try {
     const newHash = computeFileHash(doc.file_path)
-    const s = stat(doc.file_path)
+    const s = await stat(doc.file_path)
     db.prepare(`
       UPDATE documents SET file_hash = ?, file_size = ?, last_modified = ?, status = 'active', updated_at = datetime('now') WHERE id = ?
     `).run(newHash, s.size, s.mtime.toISOString(), doc.id)

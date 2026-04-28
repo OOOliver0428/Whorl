@@ -280,7 +280,7 @@ export default function Sidebar() {
           </a>
         </div>
         <div className="text-center text-xs text-text-muted">
-          Whorl v1.1.1 · 数据存储于本地
+          Whorl v1.1.2 · 数据存储于本地
         </div>
       </div>
     </aside>

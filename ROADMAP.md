@@ -131,15 +131,16 @@ DELETE /api/tasks/:id/documents/:docId    → 取消关联 ✅
 - ✅ 默认项目「收件箱」改为「公共」
 - ✅ 扫描目录支持 .vsdx / .drawio 格式
 - ✅ 过滤 Office 临时文件（`~$` 开头）
-- ✅ 备份脚本 `backup-db.sh`
+- ✅ 备份脚本 `backup-db.sh`（v1.2.0 后推荐使用 `cli.sh backup`）
 - ✅ README 更新
 
 ---
 
-## v1.2.0 — Markdown 导出 & 紧急提醒
+## v1.2.0 — Markdown 导出 & 紧急提醒 & CLI（开发中）
 
 ### 功能概述
-两个独立功能：为 AI agent 设计的 Markdown 全量导出，以及当天有效的紧急提醒。
+三个独立功能：为 AI agent 设计的 Markdown 全量导出、当天有效的紧急提醒、
+以及提供给 AI agent 使用的命令行接口（已完成）。
 
 ### 1. Markdown 导出
 
@@ -221,10 +222,136 @@ DELETE /api/reminders/:id   → 删除提醒
 | `src/components/reminders/ReminderBell.tsx` | 新建，提醒铃铛组件 |
 | `src/components/layout/Header.tsx` | 嵌入 ReminderBell |
 
+### 3. CLI（命令行接口）
+
+#### 功能说明
+面向 AI agent 的命令行接口，通过 `read`/`write`/`backup` 前缀隔离操作，
+将全部 30+ API 端点封装为简洁的子命令。
+
+#### 设计原则
+- `read` 前缀：所有 GET 端点，只读安全
+- `write` 前缀：POST/PUT/DELETE 端点，需谨慎使用
+- `backup`：独立备份命令（直接文件操作，不经过 API）
+- delete 操作强制 `--confirm` 参数，否则打印资源详情并拒绝执行
+- 零依赖，纯 TypeScript + Node.js 内置 API
+- 输出纯 JSON（stdout），错误到 stderr
+
+#### 命令树
+
+```
+cli.sh read task list [--status] [--project-id] [--search] [--priority] ...
+cli.sh read task get <id>
+cli.sh read task documents <taskId>
+cli.sh read project list
+cli.sh read project get <id>
+cli.sh read tag list
+cli.sh read pomodoro list [--date] [--task-id] [--limit]
+cli.sh read pomodoro today
+cli.sh read stats overview | trend | projects | priority | heatmap | weekly | tags
+cli.sh read export json [--file <path>]
+cli.sh read export csv [--file <path>]
+cli.sh read document list --project-id <n> [--status] [--search] ...
+cli.sh read document get <id>
+
+cli.sh write task create --title <s> [--description] [--priority 0-3] [--due-date] ...
+cli.sh write task update <id> [--title] [--status] [--priority] ...
+cli.sh write task delete <id> --confirm
+cli.sh write task reorder --items '[...]'
+cli.sh write task link <taskId> <docId> [--type reference|output]
+cli.sh write task unlink <taskId> <docId> --confirm
+cli.sh write project create --name <s> [--color] [--icon]
+cli.sh write project update <id> [--name] [--color] [--icon] [--archived]
+cli.sh write project delete <id> --confirm
+cli.sh write tag create --name <s> [--color]
+cli.sh write tag update <id> [--name] [--color]
+cli.sh write tag delete <id> --confirm
+cli.sh write pomodoro start [--task-id] [--duration 25] [--type work|break]
+cli.sh write document create --name <s> --project-id <n> [--path] ...
+cli.sh write document update <id> [--name] [--description] [--status]
+cli.sh write document delete <id> --confirm
+cli.sh write document scan --directory <s> [--project-id] [--extensions]
+cli.sh write document import --project-id <n> --files '[...]'
+cli.sh write document check --document-ids '[...]'
+cli.sh write document refresh <id>
+
+cli.sh backup
+```
+
+#### 安全机制
+| 层级 | 机制 | 说明 |
+|------|------|------|
+| 前缀隔离 | `read` vs `write` | 物理隔离读写命令，`read` 无任何副作用 |
+| 删除确认 | `--confirm` | delete 操作无此标志则拒绝，并打印将被删除的资源详情 |
+| 备份保护 | `cli.sh backup` | 独立备份命令，推荐任何写操作前执行 |
+
+#### 改动文件
+| 文件 | 变更 |
+|------|------|
+| `cli/cli.ts` | 新建，入口路由（read/write/backup 分发） |
+| `cli/client.ts` | 新建，fetch 封装 + JSON 输出 |
+| `cli/args.ts` | 新建，`--key value` 参数解析 |
+| `cli/guard.ts` | 新建，delete `--confirm` 校验 |
+| `cli/backup.ts` | 新建，数据库备份（cp 命令） |
+| `cli/commands/task.ts` | 新建，任务 CRUD 命令 |
+| `cli/commands/project.ts` | 新建，项目 CRUD 命令 |
+| `cli/commands/tag.ts` | 新建，标签 CRUD 命令 |
+| `cli/commands/pomodoro.ts` | 新建，番茄钟命令 |
+| `cli/commands/stats.ts` | 新建，统计命令 |
+| `cli/commands/export.ts` | 新建，导出命令 |
+| `cli/commands/document.ts` | 新建，文档池命令 |
+| `cli.sh` | 新建，启动脚本 |
+| `.opencode/skills/whorl-cli/SKILL.md` | 新建，AI agent 使用文档 |
+| `AGENTS.md` | 注册 whorl-cli skill |
+
+### 4. 侧栏项目/标签折叠收纳
+
+#### 功能说明
+项目和标签栏支持折叠/展开，避免项目或标签过多时侧栏过长。
+
+#### 交互
+```
+展开状态：
+  项目 ▼
+    📁 公共
+    💼 工作
+
+折叠状态：
+  项目 ▶
+```
+- 每个 section 独立折叠，默认展开
+- 折叠箭头用 `ChevronDown` ↔ `ChevronRight`
+- 本地 `useState` 控制，不进全局 store
+
+#### 改动文件
+| 文件 | 变更 |
+|------|------|
+| `src/components/layout/Sidebar.tsx` | 项目/标签 section 各加折叠 state + 箭头按钮 |
+
+### 5. 时间线已完成任务用完成时间
+
+#### 功能说明
+时间线任务条的终点，已完成任务显示创建日→完成日，未完成任务保持创建日→截止日。
+
+#### 逻辑
+```
+当前：startDate=created_at, endDate=due_date
+新：
+  - 已完成任务: startDate=created_at, endDate=completed_at
+  - 未完成任务: startDate=created_at, endDate=due_date
+```
+轴区间计算也纳入 completed_at，避免已完成任务条超出视口。
+已完成任务条用 `opacity-60` 与未完成任务视觉区分。
+
+#### 改动文件
+| 文件 | 变更 |
+|------|------|
+| `src/components/tasks/TaskTimeline.tsx` | `getBarStyle` + 轴区间 + 已完成样式 |
+
 ---
 
 ## v1.3.0 (规划中)
 
+- [ ] CLI 增强（交互式任务创建、批量操作、管道集成）
 - [ ] 数据导入（从 JSON 备份恢复）
 - [ ] 任务模板
 - [ ] 快捷键支持

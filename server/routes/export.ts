@@ -33,18 +33,26 @@ router.get('/csv', (_req, res) => {
     ORDER BY t.sort_order ASC
   `).all() as any[]
 
+  function escapeCsv(value: unknown): string {
+    const str = String(value ?? '')
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return `"${str.replace(/"/g, '""')}"`
+    }
+    return str
+  }
+
   const headers = ['id', 'title', 'description', 'status', 'priority', 'due_date', 'project_name', 'tags', 'created_at', 'completed_at']
   const rows = tasks.map((t) => [
     t.id,
-    `"${(t.title || '').replace(/"/g, '""')}"`,
-    `"${(t.description || '').replace(/"/g, '""')}"`,
+    escapeCsv(t.title),
+    escapeCsv(t.description),
     t.status,
     t.priority,
-    t.due_date || '',
-    t.project_name || '',
-    t.tag_names || '',
+    escapeCsv(t.due_date),
+    escapeCsv(t.project_name),
+    escapeCsv(t.tag_names),
     t.created_at,
-    t.completed_at || '',
+    escapeCsv(t.completed_at),
   ])
 
   const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')

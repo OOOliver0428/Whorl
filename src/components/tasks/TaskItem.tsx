@@ -27,6 +27,7 @@ export default function TaskItem({ task, depth = 0 }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const prevCountRef = useRef(task.subtask_count)
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
 
   const subtaskCount = task.subtask_count || 0
 
@@ -88,7 +89,20 @@ export default function TaskItem({ task, depth = 0 }: Props) {
           />
 
           {/* Content */}
-          <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setEditing(true)}>
+          <div
+            className="min-w-0 flex-1 cursor-pointer"
+            onPointerDown={(e) => { pointerStartRef.current = { x: e.clientX, y: e.clientY } }}
+            onClick={(e) => {
+              const start = pointerStartRef.current
+              pointerStartRef.current = null
+              if (start) {
+                const dx = e.clientX - start.x
+                const dy = e.clientY - start.y
+                if (Math.sqrt(dx * dx + dy * dy) > 5) return
+              }
+              setEditing(true)
+            }}
+          >
             <div className="flex items-center gap-2">
               <h3
                 className={`text-sm font-medium transition-all ${

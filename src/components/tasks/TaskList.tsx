@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { useAppStore, type Task } from '../../store'
 import { api } from '../../api'
 import TaskItem from './TaskItem'
@@ -191,8 +191,26 @@ function TodayView({ tasks }: { tasks: Task[] }) {
 }
 
 function DefaultView({ tasks }: { tasks: Task[] }) {
-  const todoTasks = tasks.filter((t) => t.status !== 'done')
-  const doneTasks = tasks.filter((t) => t.status === 'done')
+  const { reorderTasks } = useAppStore()
+  const [todoList, setTodoList] = useState<Task[]>([])
+  const [doneList, setDoneList] = useState<Task[]>([])
+
+  useEffect(() => {
+    setTodoList(tasks.filter((t) => t.status !== 'done'))
+    setDoneList(tasks.filter((t) => t.status === 'done'))
+  }, [tasks])
+
+  const handleTodoReorder = (newOrder: Task[]) => {
+    setTodoList(newOrder)
+    const orders = newOrder.map((t, i) => ({ id: t.id, sort_order: i }))
+    reorderTasks(orders)
+  }
+
+  const handleDoneReorder = (newOrder: Task[]) => {
+    setDoneList(newOrder)
+    const orders = newOrder.map((t, i) => ({ id: t.id, sort_order: i }))
+    reorderTasks(orders)
+  }
 
   if (tasks.length === 0) {
     return (
@@ -213,52 +231,68 @@ function DefaultView({ tasks }: { tasks: Task[] }) {
   return (
     <div className="space-y-6">
       {/* Todo tasks */}
-      {todoTasks.length > 0 && (
+      {todoList.length > 0 && (
         <div>
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-text-secondary">
             <ListTodo size={16} />
-            待办 · {todoTasks.length}
+            待办 · {todoList.length}
           </div>
-          <div className="space-y-1">
-            <AnimatePresence mode="popLayout">
-              {todoTasks.map((task, i) => (
-                <motion.div
-                  key={task.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ delay: i * 0.03 }}
-                >
-                  <TaskItem task={task} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+          <Reorder.Group
+            axis="y"
+            as="div"
+            className="space-y-1"
+            values={todoList.map((t) => t.id)}
+            onReorder={(newIds) => {
+              const map = new Map(todoList.map((t) => [t.id, t]))
+              handleTodoReorder(newIds.map((id) => map.get(id as number)!))
+            }}
+          >
+            {todoList.map((task, i) => (
+              <Reorder.Item
+                key={task.id}
+                as="div"
+                value={task.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+              >
+                <TaskItem task={task} />
+              </Reorder.Item>
+            ))}
+          </Reorder.Group>
         </div>
       )}
 
       {/* Done tasks */}
-      {doneTasks.length > 0 && (
+      {doneList.length > 0 && (
         <div>
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-text-muted">
             <CheckCircle2 size={16} />
-            已完成 · {doneTasks.length}
+            已完成 · {doneList.length}
           </div>
-          <div className="space-y-1">
-            <AnimatePresence mode="popLayout">
-              {doneTasks.map((task, i) => (
-                <motion.div
-                  key={task.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ delay: i * 0.03 }}
-                >
-                  <TaskItem task={task} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+          <Reorder.Group
+            axis="y"
+            as="div"
+            className="space-y-1"
+            values={doneList.map((t) => t.id)}
+            onReorder={(newIds) => {
+              const map = new Map(doneList.map((t) => [t.id, t]))
+              handleDoneReorder(newIds.map((id) => map.get(id as number)!))
+            }}
+          >
+            {doneList.map((task, i) => (
+              <Reorder.Item
+                key={task.id}
+                as="div"
+                value={task.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+              >
+                <TaskItem task={task} />
+              </Reorder.Item>
+            ))}
+          </Reorder.Group>
         </div>
       )}
     </div>

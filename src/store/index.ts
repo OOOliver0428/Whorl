@@ -80,6 +80,8 @@ interface AppState {
   createTag: (data: CreateTagData) => Promise<Tag>
   updateTag: (id: number, data: UpdateTagData) => Promise<Tag>
   deleteTag: (id: number) => Promise<void>
+
+  reorderTasks: (orders: { id: number; sort_order: number }[]) => Promise<void>
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -240,5 +242,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteTag: async (id) => {
     await api.deleteTag(id)
     await get().fetchTags()
+  },
+
+  reorderTasks: async (orders) => {
+    const prev = get().tasks
+    const updated = prev.map((t) => {
+      const o = orders.find((o) => o.id === t.id)
+      return o ? { ...t, sort_order: o.sort_order } : t
+    })
+    set({ tasks: updated.sort((a, b) => a.sort_order - b.sort_order) })
+    try {
+      await api.reorderTasks(orders)
+    } catch {
+      set({ tasks: prev })
+    }
   },
 }))
