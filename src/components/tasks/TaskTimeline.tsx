@@ -29,8 +29,8 @@ export default function TaskTimeline() {
   // Calculate date range for the axis
   const { axisStart, axisEnd, totalDays } = useMemo(() => {
     const today = new Date()
-    const withDates = tasks.filter((t) => t.due_date)
-    if (withDates.length === 0) {
+    const visibleTasks = tasks.filter((t) => t.due_date || t.completed_at)
+    if (visibleTasks.length === 0) {
       const start = addDays(today, -14)
       const end = addDays(today, 90)
       return { axisStart: start, axisEnd: end, totalDays: differenceInDays(end, start) }
@@ -38,11 +38,13 @@ export default function TaskTimeline() {
 
     let minDate = today
     let maxDate = addDays(today, 30)
-    for (const t of withDates) {
+    for (const t of visibleTasks) {
       const created = parseISO(t.created_at)
-      const due = parseISO(t.due_date!)
+      const end = t.status === 'done' && t.completed_at
+        ? parseISO(t.completed_at)
+        : (t.due_date ? parseISO(t.due_date) : maxDate)
       if (created < minDate) minDate = created
-      if (due > maxDate) maxDate = due
+      if (end > maxDate) maxDate = end
     }
     // Add padding
     minDate = addDays(minDate, -7)
@@ -75,7 +77,9 @@ export default function TaskTimeline() {
 
   const getBarStyle = (task: Task) => {
     const startDate = parseISO(task.created_at)
-    const endDate = task.due_date ? parseISO(task.due_date) : axisStart
+    const endDate = task.status === 'done' && task.completed_at
+      ? parseISO(task.completed_at)
+      : (task.due_date ? parseISO(task.due_date) : axisStart)
     const left = Math.max(0, (differenceInDays(startDate, axisStart) / totalDays) * 100)
     const width = Math.max(1.5, (differenceInDays(endDate, startDate) / totalDays) * 100)
     return { left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }
@@ -207,6 +211,8 @@ export default function TaskTimeline() {
                 const isDone = task.status === 'done'
                 const isOverdue = task.due_date && isPast(parseISO(task.due_date)) && !isDone && !isToday(parseISO(task.due_date))
                 const hasDueDate = !!task.due_date
+                const barEndDate = isDone && task.completed_at ? task.completed_at : task.due_date
+                const hasBar = hasDueDate || (isDone && task.completed_at)
 
                 return (
                   <motion.div
@@ -232,7 +238,7 @@ export default function TaskTimeline() {
 
                     {/* Bar area */}
                     <div className="relative flex-1 py-2.5">
-                      {hasDueDate ? (
+                      {hasBar ? (
                         <div
                           className="absolute top-1/2 h-5 -translate-y-1/2 rounded-md transition-all"
                           style={{
@@ -244,7 +250,7 @@ export default function TaskTimeline() {
                           {/* Bar label on hover */}
                           <div className="pointer-events-none absolute inset-0 flex items-center overflow-hidden px-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                             <span className="truncate text-[10px] font-medium text-white drop-shadow">
-                              {format(parseISO(task.created_at), 'M/d')} → {format(parseISO(task.due_date!), 'M/d')}
+                              {format(parseISO(task.created_at), 'M/d')} → {barEndDate ? format(parseISO(barEndDate), 'M/d') : '?'}
                             </span>
                           </div>
                         </div>

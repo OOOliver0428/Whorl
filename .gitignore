@@ -29,6 +29,9 @@ npm-debug.log*
 *.swo
 *~
 
+# Agent runtime
+.omo/
+
 # Temp
 tmp/
 temp/

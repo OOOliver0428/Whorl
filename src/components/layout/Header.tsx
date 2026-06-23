@@ -22,7 +22,7 @@ interface Props {
 export default function Header({ onAddTask }: Props) {
   const {
     currentView, currentProjectId, projects, tags, viewMode, setViewMode,
-    searchQuery, setSearchQuery, filterStatus, filterPriority, filterTags,
+    searchQuery, setSearchQuery, filterStatus, filterPriority, filterTags, filterPhase,
     setFilter, fetchTasks,
   } = useAppStore()
   const { theme, toggle: toggleTheme } = useThemeStore()
@@ -38,7 +38,7 @@ export default function Header({ onAddTask }: Props) {
 
   const isTaskView = ['inbox', 'today', 'upcoming', 'project'].includes(currentView)
 
-  const hasActiveFilters = filterStatus || filterPriority !== null || filterTags.length > 0
+  const hasActiveFilters = filterStatus || filterPriority !== null || filterTags.length > 0 || filterPhase
 
   const handleSearch = useCallback((value: string) => {
     setLocalSearch(value)
@@ -111,9 +111,9 @@ export default function Header({ onAddTask }: Props) {
           }`}
         >
           <Filter size={16} />
-          {filterTags.length > 0 && (
+          {hasActiveFilters && (
             <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
-              {filterTags.length}
+              {[filterStatus, filterPriority !== null ? '1' : null, filterPhase].filter(Boolean).length + filterTags.length}
             </span>
           )}
         </button>
@@ -198,6 +198,21 @@ export default function Header({ onAddTask }: Props) {
                 <option value="2">高</option>
                 <option value="3">紧急</option>
               </select>
+              <select
+                value={filterPhase || ''}
+                onChange={(e) => {
+                  setFilter('phase', e.target.value || null)
+                  fetchTasks()
+                }}
+                className="h-8 rounded-md border border-border bg-bg px-2 text-xs text-text outline-none"
+              >
+                <option value="">全部阶段</option>
+                <option value="新建">新建</option>
+                <option value="调研">调研</option>
+                <option value="设计中">设计中</option>
+                <option value="评审">评审</option>
+                <option value="提交">提交</option>
+              </select>
               {tags.length > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Tag size={12} className="text-text-muted" />
@@ -230,6 +245,7 @@ export default function Header({ onAddTask }: Props) {
                     setFilter('status', null)
                     setFilter('priority', null)
                     setFilter('tags', [])
+                    setFilter('phase', null)
                     fetchTasks()
                   }}
                   className="text-xs text-text-muted hover:text-primary"

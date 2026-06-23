@@ -13,6 +13,7 @@ export interface Task {
   recurrence_rule: string | null
   estimated_minutes: number
   sort_order: number
+  phase: string | null
   completed_at: string | null
   created_at: string
   updated_at: string
@@ -30,6 +31,8 @@ export interface Project {
   color: string
   icon: string
   archived: number
+  parent_id: number | null
+  sort_order: number
   todo_count: number
   done_count: number
   total_count: number
@@ -58,12 +61,13 @@ interface AppState {
   filterStatus: string | null
   filterPriority: number | null
   filterTags: number[]
+  filterPhase: string | null
 
   setView: (view: AppState['currentView'], projectId?: number | null) => void
   setViewMode: (mode: 'list' | 'timeline') => void
   setTimelineShowNoDate: (show: boolean) => void
   setSearchQuery: (q: string) => void
-  setFilter: (key: 'status' | 'priority' | 'tags', value: string | number | number[] | null) => void
+  setFilter: (key: 'status' | 'priority' | 'tags' | 'phase', value: string | number | number[] | null) => void
 
   fetchTasks: () => Promise<void>
   fetchProjects: () => Promise<void>
@@ -98,6 +102,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   filterStatus: null,
   filterPriority: null,
   filterTags: [],
+  filterPhase: null,
 
   setView: (view, projectId) => set({ currentView: view, currentProjectId: projectId ?? null }),
   setViewMode: (mode) => set({ viewMode: mode }),
@@ -108,13 +113,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   fetchTasks: async () => {
     set({ loading: true })
     try {
-      const { currentView, currentProjectId, searchQuery, filterStatus, filterPriority, filterTags, viewMode } = get()
+      const { currentView, currentProjectId, searchQuery, filterStatus, filterPriority, filterTags, filterPhase, viewMode } = get()
       const params: Record<string, string> = {}
 
       if (searchQuery) params.search = searchQuery
       if (filterStatus) params.status = filterStatus
       if (filterPriority !== null) params.priority = String(filterPriority)
       if (filterTags.length > 0) params.tag_ids = filterTags.join(',')
+      if (filterPhase) params.phase = filterPhase
 
       const today = new Date().toISOString().split('T')[0]
 

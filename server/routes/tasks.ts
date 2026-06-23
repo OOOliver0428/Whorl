@@ -26,6 +26,7 @@ const createTaskSchema = z.object({
   recurrence_rule: z.string().nullable().default(null),
   estimated_minutes: z.number().int().min(0).max(9999).default(0),
   tag_ids: z.array(z.number().int().positive()).default([]),
+  phase: z.string().max(50).nullable().default(null),
 })
 
 const updateTaskSchema = z.object({
@@ -39,6 +40,7 @@ const updateTaskSchema = z.object({
   recurrence_rule: z.string().nullable().optional(),
   estimated_minutes: z.number().int().min(0).max(9999).optional(),
   tag_ids: z.array(z.number().int().positive()).optional(),
+  phase: z.string().max(50).nullable().optional(),
 })
 
 const reorderSchema = z.object({
@@ -67,7 +69,7 @@ const linkDocSchema = z.object({
 
 // List tasks with filters
 router.get('/', (req, res) => {
-  const { status, project_id, parent_id, search, priority, due_from, due_to, tag_id, tag_ids } = req.query
+  const { status, project_id, parent_id, search, priority, due_from, due_to, tag_id, tag_ids, phase } = req.query
 
   let sql = `
     SELECT t.*, p.name as project_name, p.color as project_color, p.icon as project_icon,
@@ -100,6 +102,7 @@ router.get('/', (req, res) => {
       params.push(...ids, ids.length)
     }
   }
+  if (phase && typeof phase === 'string') { sql += ' AND t.phase = ?'; params.push(phase) }
 
   sql += ' GROUP BY t.id ORDER BY t.sort_order ASC, t.created_at DESC'
 
@@ -200,15 +203,15 @@ router.get('/:id', (req, res) => {
 
 // Create task
 router.post('/', validate(createTaskSchema), (req, res) => {
-  const { title, description, priority, due_date, project_id, parent_id, recurrence_rule, estimated_minutes, tag_ids } = req.body
+  const { title, description, priority, due_date, project_id, parent_id, recurrence_rule, estimated_minutes, tag_ids, phase } = req.body
 
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM tasks').get() as { max: number | null }
   const sortOrder = (maxOrder.max || 0) + 1
 
   const result = db.prepare(`
-    INSERT INTO tasks (title, description, priority, due_date, project_id, parent_id, recurrence_rule, estimated_minutes, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(title, description, priority, due_date, project_id, parent_id, recurrence_rule, estimated_minutes, sortOrder)
+    INSERT INTO tasks (title, description, priority, due_date, project_id, parent_id, recurrence_rule, estimated_minutes, sort_order, phase)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(title, description, priority, due_date, project_id, parent_id, recurrence_rule, estimated_minutes, sortOrder, phase)
 
   // Attach tags
   const insertTag = db.prepare('INSERT OR IGNORE INTO task_tags (task_id, tag_id) VALUES (?, ?)')
@@ -222,7 +225,7 @@ router.post('/', validate(createTaskSchema), (req, res) => {
 
 // Update task
 router.put('/:id', validate(updateTaskSchema), (req, res) => {
-  const { title, description, status, priority, due_date, project_id, parent_id, recurrence_rule, estimated_minutes, tag_ids } = req.body
+  const { title, description, status, priority, due_date, project_id, parent_id, recurrence_rule, estimated_minutes, tag_ids, phase } = req.body
 
   const fields: string[] = []
   const params: (string | number | null)[] = []
@@ -236,6 +239,7 @@ router.put('/:id', validate(updateTaskSchema), (req, res) => {
   if (parent_id !== undefined) { fields.push('parent_id = ?'); params.push(parent_id) }
   if (recurrence_rule !== undefined) { fields.push('recurrence_rule = ?'); params.push(recurrence_rule) }
   if (estimated_minutes !== undefined) { fields.push('estimated_minutes = ?'); params.push(estimated_minutes) }
+  if (phase !== undefined) { fields.push('phase = ?'); params.push(phase) }
 
   if (status === 'done') { fields.push("completed_at = datetime('now')") }
   else if (status && status !== 'done') { fields.push('completed_at = NULL') }
@@ -267,8 +271,8 @@ router.put('/:id', validate(updateTaskSchema), (req, res) => {
       const sortOrder = (maxOrder.max || 0) + 1
 
       const result = db.prepare(`
-        INSERT INTO tasks (title, description, priority, due_date, project_id, parent_id, recurrence_rule, estimated_minutes, sort_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO tasks (title, description, priority, due_date, project_id, parent_id, recurrence_rule, estimated_minutes, sort_order, phase)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         current.title,
         current.description,
@@ -279,6 +283,7 @@ router.put('/:id', validate(updateTaskSchema), (req, res) => {
         current.recurrence_rule,
         current.estimated_minutes,
         sortOrder,
+        current.phase,
       )
 
       // Copy tags

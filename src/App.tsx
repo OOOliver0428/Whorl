@@ -7,6 +7,7 @@ import TaskList from './components/tasks/TaskList'
 import TaskTimeline from './components/tasks/TaskTimeline'
 import TaskForm from './components/tasks/TaskForm'
 import PomodoroTimer from './components/pomodoro/PomodoroTimer'
+import ReminderStrip from './components/reminders/ReminderStrip'
 import { DocumentPool, ProjectTabs } from './components/documents'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useState } from 'react'
@@ -48,6 +49,7 @@ export default function App() {
       <Sidebar />
       <main className="flex flex-1 flex-col overflow-hidden">
         <Header onAddTask={() => setShowForm(true)} />
+        <ReminderStrip />
         <div className="flex-1 overflow-y-auto p-6">
           <ErrorBoundary>
             {currentView === 'stats' ? (

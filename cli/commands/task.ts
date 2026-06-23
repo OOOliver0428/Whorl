@@ -34,6 +34,7 @@ export const write: Record<string, Handler> = {
     if (flags['estimated-minutes']) body.estimated_minutes = parseInt(flags['estimated-minutes'] as string)
     if (flags.recurrence) body.recurrence_rule = flags.recurrence
     if (flags['tag-ids']) body.tag_ids = (flags['tag-ids'] as string).split(',').map(Number)
+    if (flags.phase) body.phase = flags.phase
     await api('POST', '/api/tasks', body)
   },
 
@@ -51,6 +52,7 @@ export const write: Record<string, Handler> = {
     if (flags['estimated-minutes']) body.estimated_minutes = parseInt(flags['estimated-minutes'] as string)
     if (flags.recurrence) body.recurrence_rule = flags.recurrence
     if (flags['tag-ids']) body.tag_ids = (flags['tag-ids'] as string).split(',').map(Number)
+    if (flags.phase !== undefined) body.phase = flags.phase === 'null' ? null : flags.phase
     await api('PUT', `/api/tasks/${id}`, body)
   },
 

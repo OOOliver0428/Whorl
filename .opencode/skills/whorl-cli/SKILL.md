@@ -64,7 +64,7 @@ CLI 命令分为三个前缀，物理隔离读写：
 # 任务列表 (支持全部 API 过滤参数)
 cli.sh read task list [--status todo|done] [--project-id <n>] [--search <keyword>] \
   [--priority 0-3] [--due-from <date>] [--due-to <date>] [--tag-id <n>] \
-  [--tag-ids 1,2,3] [--parent-id <n>|null]
+  [--tag-ids 1,2,3] [--parent-id <n>|null] [--phase "阶段名"]
 
 # 单任务详情 (含 subtasks, tags)
 cli.sh read task get <id>
@@ -84,14 +84,16 @@ cli.sh write task create \
   [--parent-id <n>] \
   [--estimated-minutes 30] \
   [--recurrence daily|weekly|monthly] \
-  [--tag-ids 1,2,3]
+  [--tag-ids 1,2,3] \
+  [--phase "新建|调研|设计中|评审|提交"]
 
 # 更新任务 (只传要更新的字段)
 cli.sh write task update <id> \
   [--title "..."] [--description "..."] [--status todo|done] \
   [--priority 0-3] [--due-date "..."] [--project-id <n>|null] \
   [--parent-id <n>|null] [--estimated-minutes <n>] \
-  [--recurrence daily|weekly|monthly] [--tag-ids 1,2,3]
+  [--recurrence daily|weekly|monthly] [--tag-ids 1,2,3] \
+  [--phase "阶段名"]|null]
 
 # 删除任务 (必须 --confirm)
 cli.sh write task delete <id> --confirm

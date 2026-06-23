@@ -64,6 +64,7 @@ export interface CreateTaskData {
   recurrence_rule?: string | null
   estimated_minutes?: number
   tag_ids?: number[]
+  phase?: string | null
 }
 
 export interface UpdateTaskData {
@@ -77,12 +78,15 @@ export interface UpdateTaskData {
   recurrence_rule?: string | null
   estimated_minutes?: number
   tag_ids?: number[]
+  phase?: string | null
 }
 
 export interface CreateProjectData {
   name: string
   color?: string
   icon?: string
+  parent_id?: number | null
+  sort_order?: number
 }
 
 export interface UpdateProjectData {
@@ -90,6 +94,8 @@ export interface UpdateProjectData {
   color?: string
   icon?: string
   archived?: boolean
+  parent_id?: number | null
+  sort_order?: number
 }
 
 export interface CreateTagData {
@@ -152,6 +158,14 @@ export interface TaskDocumentLink {
   description: string
 }
 
+export interface Reminder {
+  id: number
+  time: string
+  message: string
+  date: string
+  notified: boolean
+}
+
 const BASE = '/api'
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -184,6 +198,8 @@ export const api = {
   createProject: (data: CreateProjectData) => request<Project>('/projects', { method: 'POST', body: JSON.stringify(data) }),
   updateProject: (id: number, data: UpdateProjectData) => request<Project>(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteProject: (id: number) => request<{ success: boolean }>(`/projects/${id}`, { method: 'DELETE' }),
+  reorderProjects: (orders: { id: number; sort_order: number }[]) =>
+    request<{ success: boolean }>('/projects/reorder', { method: 'POST', body: JSON.stringify({ orders }) }),
 
   // Tags
   getTags: () => request<Tag[]>('/tags'),
@@ -246,4 +262,13 @@ export const api = {
     }),
   unlinkTaskDocument: (taskId: number, docId: number) =>
     request<{ success: boolean }>(`/tasks/${taskId}/documents/${docId}`, { method: 'DELETE' }),
+
+  // Reminders
+  getReminders: () => request<Reminder[]>('/reminders'),
+  createReminder: (data: { time: string; message: string }) =>
+    request<Reminder>('/reminders', { method: 'POST', body: JSON.stringify(data) }),
+  markReminderNotified: (id: number) =>
+    request<Reminder>(`/reminders/${id}`, { method: 'PATCH' }),
+  deleteReminder: (id: number) =>
+    request<{ success: boolean }>(`/reminders/${id}`, { method: 'DELETE' }),
 }

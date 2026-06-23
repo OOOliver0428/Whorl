@@ -25,6 +25,7 @@ export default function TaskForm({ task, onClose }: Props) {
   const [recurrence, setRecurrence] = useState(task?.recurrence_rule || '')
   const [estimated, setEstimated] = useState(task?.estimated_minutes || 0)
   const [selectedTags, setSelectedTags] = useState<number[]>(task?.tags?.map((t) => t.id) || [])
+  const [phase, setPhase] = useState(task?.phase || '')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -40,6 +41,15 @@ export default function TaskForm({ task, onClose }: Props) {
     { value: 'daily', label: '每天' },
     { value: 'weekly', label: '每周' },
     { value: 'monthly', label: '每月' },
+  ]
+
+  const phaseOptions = [
+    { value: '', label: '无阶段' },
+    { value: '新建', label: '新建' },
+    { value: '调研', label: '调研' },
+    { value: '设计中', label: '设计中' },
+    { value: '评审', label: '评审' },
+    { value: '提交', label: '提交' },
   ]
 
   // Collect all descendant IDs to prevent circular nesting
@@ -65,6 +75,7 @@ export default function TaskForm({ task, onClose }: Props) {
         recurrence_rule: recurrence || null,
         estimated_minutes: estimated,
         tag_ids: selectedTags,
+        phase: phase || null,
       }
       if (isEdit) {
         await updateTask(task!.id, data)
@@ -153,7 +164,7 @@ export default function TaskForm({ task, onClose }: Props) {
               </div>
             </div>
 
-            {/* Due date & Project */}
+            {/* Due date & Project & Phase */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-text-secondary">
@@ -179,6 +190,20 @@ export default function TaskForm({ task, onClose }: Props) {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Phase */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-text-secondary">阶段</label>
+              <select
+                value={phase}
+                onChange={(e) => setPhase(e.target.value)}
+                className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition-colors focus:border-primary"
+              >
+                {phaseOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
 
             {/* Tags */}

@@ -19,6 +19,14 @@ interface Props {
 
 const recurrenceLabels: Record<string, string> = { daily: '每天', weekly: '每周', monthly: '每月' }
 
+const phaseColors: Record<string, string> = {
+  '新建': '#94a3b8',
+  '调研': '#3b82f6',
+  '设计中': '#f59e0b',
+  '评审': '#8b5cf6',
+  '提交': '#10b981',
+}
+
 export default function TaskItem({ task, depth = 0 }: Props) {
   const { toggleTask, deleteTask } = useAppStore()
   const [expanded, setExpanded] = useState(false)
@@ -111,6 +119,17 @@ export default function TaskItem({ task, depth = 0 }: Props) {
               >
                 {task.title}
               </h3>
+              {task.phase && (
+                <span
+                  className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                  style={{
+                    backgroundColor: (phaseColors[task.phase] || '#6366f1') + '15',
+                    color: phaseColors[task.phase] || '#6366f1',
+                  }}
+                >
+                  {task.phase}
+                </span>
+              )}
               {isOverdue && (
                 <span className="flex items-center gap-0.5 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-danger">
                   <AlertCircle size={10} /> 逾期

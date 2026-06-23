@@ -136,13 +136,13 @@ DELETE /api/tasks/:id/documents/:docId    → 取消关联 ✅
 
 ---
 
-## v1.2.0 — Markdown 导出 & 紧急提醒 & CLI（开发中）
+## v1.2.0 — Markdown 导出 & 紧急提醒 & CLI & 体验优化 ✅ 已完成
 
 ### 功能概述
 三个独立功能：为 AI agent 设计的 Markdown 全量导出、当天有效的紧急提醒、
 以及提供给 AI agent 使用的命令行接口（已完成）。
 
-### 1. Markdown 导出
+### 1. Markdown 导出 ✅
 
 #### 功能说明
 新增 Markdown 格式导出，面向 AI agent 场景。全量导出所有项目任务，
@@ -181,7 +181,7 @@ GET /api/export/md  → 返回 Markdown 格式的全量任务导出
 | `server/routes/export.ts` | 新增 `/md` handler |
 | `src/api/index.ts` | 新增 `exportMarkdown()` 方法 |
 
-### 2. 紧急提醒
+### 2. 紧急提醒 ✅
 
 #### 功能说明
 添加当天有效的临时提醒（如「15:30 紧急会议」）。纯内存存储，
@@ -303,7 +303,7 @@ cli.sh backup
 | `.opencode/skills/whorl-cli/SKILL.md` | 新建，AI agent 使用文档 |
 | `AGENTS.md` | 注册 whorl-cli skill |
 
-### 4. 侧栏项目/标签折叠收纳
+### 4. 侧栏项目/标签折叠收纳 ✅
 
 #### 功能说明
 项目和标签栏支持折叠/展开，避免项目或标签过多时侧栏过长。
@@ -327,7 +327,7 @@ cli.sh backup
 |------|------|
 | `src/components/layout/Sidebar.tsx` | 项目/标签 section 各加折叠 state + 箭头按钮 |
 
-### 5. 时间线已完成任务用完成时间
+### 5. 时间线已完成任务用完成时间 ✅
 
 #### 功能说明
 时间线任务条的终点，已完成任务显示创建日→完成日，未完成任务保持创建日→截止日。
@@ -349,7 +349,153 @@ cli.sh backup
 
 ---
 
-## v1.3.0 (规划中)
+## v1.3.0 — 子项目支持 ✅ 已完成
+
+### 功能概述
+项目支持无限层级子项目。侧栏以树形展示，父项目可折叠/展开。
+每个项目只显示直接关联的任务，不含子项目任务。
+
+### 1. 数据库变更（Migration v5）✅
+
+```sql
+-- 新增两列（不嵌 FOREIGN KEY，由代码保证引用完整性）
+ALTER TABLE projects ADD COLUMN parent_id INTEGER;
+ALTER TABLE projects ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX idx_projects_parent ON projects(parent_id);
+```
+
+- `parent_id = NULL` → 顶级项目
+- `parent_id = N` → 项目 N 的子项目
+- `CURRENT_VERSION` 更新为 5
+
+### 2. 后端 API 变更 ✅
+
+#### `server/routes/projects.ts`
+
+**CREATE / UPDATE schema：**
+```
+新增 parent_id: number | null (可选)
+新增 sort_order: number (可选)
+```
+
+**循环引用检测（CREATE + UPDATE 必须）：**
+```typescript
+function isDescendant(parentId: number, targetId: number): boolean {
+  const project = db.prepare('SELECT parent_id FROM projects WHERE id = ?').get(parentId) as any
+  if (!project || !project.parent_id) return false
+  if (project.parent_id === targetId) return true
+  return isDescendant(project.parent_id, targetId)
+}
+```
+校验规则：
+- `parent_id` 不能是自身
+- `parent_id` 不能是当前项目的任何后代
+
+**DELETE 逻辑更新：**
+```typescript
+// 新增：子项目的 parent_id 置 NULL（变为顶级项目）
+db.prepare('UPDATE projects SET parent_id = NULL WHERE parent_id = ?').run(id)
+// 原有：tasks 的 project_id 置 NULL
+db.prepare('UPDATE tasks SET project_id = NULL WHERE project_id = ?').run(id)
+```
+
+**GET /api/projects 响应不变**（前端自行构建树）
+
+### 3. 前端类型变更 ✅
+
+```typescript
+export interface Project {
+  // ... 现有字段
+  parent_id: number | null    // 新增
+  sort_order: number          // 新增
+}
+```
+
+### 4. 侧栏树形渲染 ✅
+
+**渲染算法：**
+1. 构建项目树：顶级项目（parent_id === null）+ 子项目映射
+2. 顶级项目直接渲染，子项目缩进（pl-6 每级）
+3. 有子项目的项目显示 ChevronDown/ChevronRight 折叠箭头
+4. 子项目排序：sort_order ASC
+5. 每级缩进上限 3 层（pl-6 × 3 = pl-18 封顶）
+
+**expand 状态：** `Map<number, boolean>` 本地 useState，默认全部展开
+
+**归档父项目的子项目处理：**
+```typescript
+// parent 指向已归档项目 → 视为顶级项目（孤儿）
+const parent = projects.find(p => p.id === proj.parent_id)
+const isOrphaned = parent?.archived === 1
+```
+
+**useMemo 优化：**
+```typescript
+const projectTree = useMemo(() => {
+  const top = projects.filter(p => !p.archived && !p.parent_id)
+  const children = new Map<number, Project[]>()
+  for (const p of projects.filter(p => p.parent_id)) {
+    const list = children.get(p.parent_id!) || []
+    list.push(p)
+    children.set(p.parent_id!, list)
+  }
+  return { top, children }
+}, [projects])
+```
+
+### 5. 新建项目表单 ✅
+
+**新增「父项目」选择器（下拉框）：**
+- 默认：`无`（顶级项目）
+- 选项：所有非归档项目（排除自身及其后代，防循环）
+- 编辑时排除逻辑同 `getDescendantIds`
+
+### 6. 任务筛选（不变）✅
+
+- 查看项目 A 时，只显示 `project_id = A` 的任务
+- 项目 A 的子项目任务不包含在内
+- 后端筛选逻辑无需改动
+
+### 7. 文档池（不变）✅
+
+- 子项目有独立文档池
+- 文档的 `project_id` 指向具体的子项目 ID
+- 父项目文档池只显示父项目自己的文档
+
+### 改动文件
+
+| 文件 | 变更 |
+|------|------|
+| `server/db.ts` | Migration v5：projects 表新增 parent_id + sort_order，CURRENT_VERSION = 5 |
+| `server/routes/projects.ts` | CRUD schema 新增字段，循环引用检测，DELETE 处理子项目 |
+| `src/store/index.ts` | Project 接口新增 parent_id、sort_order |
+| `src/components/layout/Sidebar.tsx` | 项目列表改为树形渲染 + 折叠 + 新建表单父项目选择 |
+| `src/api/index.ts` | CreateProjectData / UpdateProjectData 新增 parent_id |
+
+### 风险 & 应对
+
+| 风险 | 等级 | 应对 |
+|------|------|------|
+| 循环引用 | 🔴 高 | 后端 isDescendant 递归检测 |
+| ALTER TABLE 外键 | 🔴 高 | 迁移不嵌 FOREIGN KEY，DELETE handler 手动级联 |
+| 父项目选择排除 | 🟡 中 | 下拉排除自身及后代 |
+| 树形 state 管理 | 🟡 中 | Map<id, expand> + useMemo |
+| 归档父项目的子项目 | 🟢 低 | 侧栏渲染时识别孤儿，视为顶级 |
+| 深度缩进溢出 | 🟢 低 | 3 层缩进封顶 |
+
+### 实现补充（计划外 gap-fill）
+
+以下为实现过程中对计划未明确处的补充决策：
+
+| 补充项 | 说明 |
+|--------|------|
+| `POST /api/projects/reorder` | 计划提到 sort_order 但无重排 API，新增端点用于批量更新排序 |
+| DELETE 包 `db.transaction()` | 三步操作（detach children → orphan tasks → delete project）需原子性 |
+| `isDescendant` 深度上限 100 | 防止极端情况下的栈溢出 |
+| CREATE sort_order 默认 `MAX+1` | 同 parent 下自动递增，未指定时取兄弟项目最大值 +1 |
+| 父项目存在性 + 归档校验 | CREATE/UPDATE 均校验 parent_id 指向的项目存在且未归档 |
+
+### v1.3.0 其他功能（backlog，未含在核心子项目支持中）
 
 - [ ] CLI 增强（交互式任务创建、批量操作、管道集成）
 - [ ] 数据导入（从 JSON 备份恢复）

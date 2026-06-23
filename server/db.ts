@@ -15,7 +15,7 @@ db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 
 // Migration system
-const CURRENT_VERSION = 3
+const CURRENT_VERSION = 5
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS _meta (
@@ -157,6 +157,25 @@ function runMigrations() {
       CREATE INDEX idx_task_documents_doc ON task_documents(document_id);
     `)
     setDbVersion(3)
+  }
+
+  // v4: Add phase column to tasks
+  if (current < 4) {
+    db.exec(`
+      ALTER TABLE tasks ADD COLUMN phase TEXT;
+      CREATE INDEX idx_tasks_phase ON tasks(phase);
+    `)
+    setDbVersion(4)
+  }
+
+  // v5: Subproject support — parent_id + sort_order on projects
+  if (current < 5) {
+    db.exec(`
+      ALTER TABLE projects ADD COLUMN parent_id INTEGER;
+      ALTER TABLE projects ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;
+      CREATE INDEX idx_projects_parent ON projects(parent_id);
+    `)
+    setDbVersion(5)
   }
 }
 
