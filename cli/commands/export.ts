@@ -10,7 +10,7 @@ export const read: Record<string, Handler> = {
     if (flags.file) {
       // Export to file: fetch directly to capture raw content
       const res = await fetch(
-        `${process.env.WHORL_URL || 'http://localhost:3001'}/api/export/json`,
+        `${process.env.WHORL_URL || `http://localhost:${process.env.PORT || '3001'}`}/api/export/json`,
       )
       if (!res.ok) {
         process.stderr.write(await res.text() + '\n')
@@ -28,7 +28,7 @@ export const read: Record<string, Handler> = {
     const { flags } = parse(args)
     if (flags.file) {
       const res = await fetch(
-        `${process.env.WHORL_URL || 'http://localhost:3001'}/api/export/csv`,
+        `${process.env.WHORL_URL || `http://localhost:${process.env.PORT || '3001'}`}/api/export/csv`,
       )
       if (!res.ok) {
         process.stderr.write(await res.text() + '\n')

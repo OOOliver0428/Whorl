@@ -17,13 +17,17 @@ export default function TaskDocumentPanel({ taskId, projectId }: Props) {
   // Load linked documents when editing existing task
   useEffect(() => {
     if (!taskId) return
-    api.getTaskDocuments(taskId).then(setLinked).catch(() => {})
+    api.getTaskDocuments(taskId).then(setLinked).catch((err) => {
+      console.error('[TaskDocumentPanel] Failed to load linked documents:', err)
+    })
   }, [taskId])
 
   // Load project document pool for picker
   useEffect(() => {
     if (!projectId || !showPicker) return
-    api.getDocuments({ project_id: String(projectId), status: 'active' }).then(setPool).catch(() => {})
+    api.getDocuments({ project_id: String(projectId), status: 'active' }).then(setPool).catch((err) => {
+      console.error('[TaskDocumentPanel] Failed to load document pool:', err)
+    })
   }, [projectId, showPicker])
 
   const handleLink = async (doc: Document) => {

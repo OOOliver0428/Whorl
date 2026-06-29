@@ -29,6 +29,12 @@ Usage notes:
 </skill>
 
 <skill>
+<name>brainstorming</name>
+<description>"You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."</description>
+<location>global</location>
+</skill>
+
+<skill>
 <name>brand-guidelines</name>
 <description>Applies Anthropic's official brand colors and typography to any sort of artifact that may benefit from having Anthropic's look-and-feel. Use it when brand colors or style guidelines, visual formatting, or company design standards apply.</description>
 <location>global</location>
@@ -107,6 +113,12 @@ Usage notes:
 </skill>
 
 <skill>
+<name>test-driven-development</name>
+<description>Use when implementing any feature or bugfix, before writing implementation code</description>
+<location>global</location>
+</skill>
+
+<skill>
 <name>theme-factory</name>
 <description>Toolkit for styling artifacts with a theme. These artifacts can be slides, docs, reportings, HTML landing pages, etc. There are 10 pre-set themes with colors/fonts that you can apply to any artifact that has been creating, or can generate a new theme on-the-fly.</description>
 <location>global</location>
@@ -122,12 +134,6 @@ Usage notes:
 <name>webapp-testing</name>
 <description>Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functionality, debugging UI behavior, capturing browser screenshots, and viewing browser logs.</description>
 <location>global</location>
-</skill>
-
-<skill>
-<name>whorl-cli</name>
-<description>CLI interface for the Whorl personal task manager. Use when the user wants to read, create, update, or delete tasks/projects/tags/documents in their Whorl system. Triggers on: whorl, task management, 任务管理, 番茄钟, 统计, documents pool, backup database.</description>
-<location>project</location>
 </skill>
 
 <skill>

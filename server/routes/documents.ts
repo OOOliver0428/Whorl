@@ -214,7 +214,8 @@ router.post('/scan', validate(scanSchema), async (req, res) => {
           file_size: s.size,
           last_modified: s.mtime.toISOString(),
         })
-      } catch {
+      } catch (err) {
+        console.error('[documents] Failed to stat file:', fp, err)
         // skip files that can't be read
       }
     }
@@ -254,7 +255,8 @@ router.post('/import', validate(importSchema), (req, res) => {
       let hash: string | null = null
       try {
         hash = computeFileHash(filePath)
-      } catch {
+      } catch (err) {
+        console.error('[documents] Failed to compute hash for:', filePath, err)
         // hash computation failed, store null
       }
 
@@ -306,7 +308,8 @@ router.post('/check-changes', validate(checkChangesSchema), (req, res) => {
           // File restored or hash matches, mark as active
           db.prepare("UPDATE documents SET status = 'active', file_hash = ?, updated_at = datetime('now') WHERE id = ?").run(newHash, id)
         }
-      } catch {
+      } catch (err) {
+        console.error('[documents] Failed to check file hash:', doc.file_path, err)
         // can't read file
         if (doc.status !== 'missing') {
           db.prepare("UPDATE documents SET status = 'missing', updated_at = datetime('now') WHERE id = ?").run(id)

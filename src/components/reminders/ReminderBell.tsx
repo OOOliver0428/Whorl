@@ -15,7 +15,9 @@ export default function ReminderBell() {
   const panelRef = useRef<HTMLDivElement>(null)
 
   const fetchReminders = useCallback(() => {
-    api.getReminders().then(setReminders).catch(() => {})
+    api.getReminders().then(setReminders).catch((err) => {
+      console.error('[ReminderBell] Failed to fetch reminders:', err)
+    })
   }, [])
 
   useEffect(() => {
@@ -36,7 +38,9 @@ export default function ReminderBell() {
             new Notification(`🔔 ${r.time}`, { body: r.message })
           }
           // Mark as notified
-          api.markReminderNotified(r.id).then(fetchReminders).catch(() => {})
+          api.markReminderNotified(r.id).then(fetchReminders).catch((err) => {
+            console.error('[ReminderBell] Failed to mark reminder as notified:', err)
+          })
         }
       }
     }

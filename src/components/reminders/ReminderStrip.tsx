@@ -7,7 +7,9 @@ export default function ReminderStrip() {
   const [reminders, setReminders] = useState<Reminder[]>([])
 
   const fetchReminders = useCallback(() => {
-    api.getReminders().then(setReminders).catch(() => {})
+    api.getReminders().then(setReminders).catch((err) => {
+      console.error('[ReminderStrip] Failed to fetch reminders:', err)
+    })
   }, [])
 
   useEffect(() => {

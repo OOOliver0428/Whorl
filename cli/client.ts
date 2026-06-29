@@ -1,4 +1,5 @@
-const BASE = process.env.WHORL_URL || 'http://localhost:3001'
+// Support WHORL_URL or PORT environment variables
+const BASE = process.env.WHORL_URL || `http://localhost:${process.env.PORT || '3001'}`
 
 export async function api(method: string, path: string, body?: Record<string, unknown>): Promise<void> {
   const url = `${BASE}${path}`

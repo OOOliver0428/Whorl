@@ -40,7 +40,7 @@ export async function confirmDelete(
     }
 
     const res = await fetch(
-      `${process.env.WHORL_URL || 'http://localhost:3001'}${previewPath}`,
+      `${process.env.WHORL_URL || `http://localhost:${process.env.PORT || '3001'}`}${previewPath}`,
     )
     if (res.ok) {
       const data = await res.text()

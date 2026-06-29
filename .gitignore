@@ -31,6 +31,10 @@ npm-debug.log*
 
 # Agent runtime
 .omo/
+.pids/
+
+# Claude Code
+CLAUDE.md
 
 # Temp
 tmp/
